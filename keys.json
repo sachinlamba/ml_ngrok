@@ -1,0 +1,7 @@
+{
+  "mongoHost": "ds253587.mlab.com",
+  "mongoPort": "53587",
+  "mongoDatabase": "ppsample",
+  "mongoUser": "sachin",
+  "mongoPass": "lamba"
+}
