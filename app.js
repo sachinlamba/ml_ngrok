@@ -63,6 +63,20 @@ app.get('/list_users', function (req, res) {
     });
 })
 
+app.get('/create_user', function (req, res) {
+   console.log("Got a POST request for the /create_user");
+   mongodb.MongoClient.connect(uri, (err, mongoclient) => {
+     if (err) {
+       throw err;
+     }
+     var db = mongoclient.db("ppsample");
+     let create_user = {name: "sachin", mobile: 9999278030};
+     db.collection('users').insert(create_user, {w: 1}, function(err, user){
+       console.log("user added", create_user, user)
+     })
+    });
+})
+
 var server = app.listen(8080, function() {
 console.log('API server listening on port: 8080')
 })
