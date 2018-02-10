@@ -126,7 +126,7 @@ app.post('/makerLab', function (req, res){
 function callProducts () {
   return new Promise((resolve, reject) => {
     let path = '/list_products';
-    http.get({host: "6cba4af0.ngrok.io", path: path}, (res) => {
+    http.get({host: "maker-lab-lamba.herokuapp.com", path: path}, (res) => {
       let body = ''; // var to store the response chunks
       res.on('data', (d) => { body += d; }); // store each response chunk
       res.on('end', () => {
@@ -151,7 +151,7 @@ function callProducts () {
 function callUsers () {
   return new Promise((resolve, reject) => {
     let path = '/list_users';
-    http.get({host: "6cba4af0.ngrok.io", path: path}, (res) => {
+    http.get({host: "maker-lab-lamba.herokuapp.com", path: path}, (res) => {
       let body = ''; // var to store the response chunks
       res.on('data', (d) => { body += d; }); // store each response chunk
       res.on('end', () => {
