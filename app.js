@@ -92,8 +92,8 @@ app.post('/create_user1', function (req, res) {
     });
 })
 
-var server = app.listen(8080, function() {
-console.log('API server listening on port: 8080')
+var server = app.listen(process.env.PORT || 3000, function() {
+console.log('API server listening on port: 3000 or ', process.env.PORT)
 })
 
 app.post('/makerLab', function (req, res){
