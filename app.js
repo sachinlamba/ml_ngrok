@@ -231,7 +231,7 @@ function callUsers () {
     'Content-Length': Buffer.byteLength(bodyString)
   };
   return new Promise((resolve, reject) => {
-    console.log("DSzsdf3", bodyString, _headers, typeof http.request);
+    console.log("DSzsdf3", bodyString, _headers, typeof http.request, typeof http.get);
     let path = '/create_user';
     // let req =   http.request({host: "localhost", port: process.env.PORT || 3000 , path: path, method: "POST", header: _headers}, (res) => {
     let req =   http.request({host: "maker-lab.herokuapp.com", port: process.env.PORT || 3000 , path: path, method: "POST", header: _headers}, (res) => {
