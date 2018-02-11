@@ -1,7 +1,7 @@
 {
-  "mongoHost": "ds253587.mlab.com",
-  "mongoPort": "53587",
-  "mongoDatabase": "ppsample",
+  "mongoHost": "ds225028.mlab.com",
+  "mongoPort": "25028",
+  "mongoDatabase": "maker-lab-db",
   "mongoUser": "sachin",
   "mongoPass": "lamba"
 }

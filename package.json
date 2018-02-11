@@ -5,7 +5,7 @@
   "main": "app.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start":"node app.js"
+    "start": "node app.js"
   },
   "author": "lamba",
   "engines": {
@@ -13,6 +13,7 @@
   },
   "license": "ISC",
   "dependencies": {
+    "actions-on-google": "^1.8.2",
     "body-parser": "^1.18.2",
     "express": "^4.16.2",
     "mongodb": "^3.0.1",
