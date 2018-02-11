@@ -13,7 +13,7 @@ const pass = nconf.get('mongoPass');
 const host = nconf.get('mongoHost');
 const port = nconf.get('mongoPort');
 const dbName = nconf.get('mongoDatabase');
-const serverHost = "maker-lab-lamba.herokuapp.com";
+const serverHost = "maker-lab.herokuapp.com";
 
 let uri = `mongodb://${user}:${pass}@${host}:${port}`;
 if (nconf.get('mongoDatabase')) {
@@ -231,10 +231,10 @@ function callUsers () {
     'Content-Length': Buffer.byteLength(bodyString)
   };
   return new Promise((resolve, reject) => {
-    console.log("DSzsdf3", bodyString, _headers);
+    console.log("DSzsdf3", bodyString, _headers, typeof http.request);
     let path = '/create_user';
     // let req =   http.request({host: "localhost", port: process.env.PORT || 3000 , path: path, method: "POST", header: _headers}, (res) => {
-    let req =   http.request({host: "maker-lab-lamba.herokuapp.com", port: process.env.PORT || 3000 , path: path, method: "POST", header: _headers}, (res) => {
+    let req =   http.request({host: "maker-lab.herokuapp.com", port: process.env.PORT || 3000 , path: path, method: "POST", header: _headers}, (res) => {
         let body = ''; // var to store the response chunks
         res.on('data', (d) => { body += d; }); // store each response chunk
         res.on('end', () => {
