@@ -14,7 +14,8 @@ const pass = nconf.get('mongoPass');
 const host = nconf.get('mongoHost');
 const port = nconf.get('mongoPort');
 const dbName = nconf.get('mongoDatabase');
-const serverHost = "849d0e56.ngrok.io"//"maker-lab.herokuapp.com";
+// const serverHost = "849d0e56.ngrok.io";
+const serverHost = "maker-lab.herokuapp.com";
 
 let userSchema = {
     "_id": "",
