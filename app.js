@@ -228,6 +228,7 @@ function callUsers () {
   console.log("DSfdsz2");
   var bodyString=JSON.stringify({"a": "b"})
   var _headers = {
+    "Content-Type": "application/json",
     'Content-Length': Buffer.byteLength(bodyString)
   };
   return new Promise((resolve, reject) => {
