@@ -233,7 +233,8 @@ function callUsers () {
   return new Promise((resolve, reject) => {
     console.log("DSzsdf3", bodyString, _headers);
     let path = '/create_user';
-    let req =   http.request({host: "maker-lab-lamba.herokuapp.com", path: path, method: "POST", header: _headers}, (res) => {
+    // let req =   http.request({host: "localhost", port: process.env.PORT || 3000 , path: path, method: "POST", header: _headers}, (res) => {
+    let req =   http.request({host: "maker-lab-lamba.herokuapp.com", port: process.env.PORT || 3000 , path: path, method: "POST", header: _headers}, (res) => {
         let body = ''; // var to store the response chunks
         res.on('data', (d) => { body += d; }); // store each response chunk
         res.on('end', () => {
@@ -249,7 +250,7 @@ function callUsers () {
           reject(error);
         });
       });
-      req.write(bodyString);
-      req.end();
+    req.write(bodyString);
+    req.end();
   });
 }
