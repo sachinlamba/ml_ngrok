@@ -15,7 +15,7 @@ const port = nconf.get('mongoPort');
 const dbName = nconf.get('mongoDatabase');
 const serverHost = "maker-lab-lamba.herokuapp.com";
 
-let userSchema = {
+var userSchema = {
     "_id": "",
     "first_name": "",
     "last_name": "",
