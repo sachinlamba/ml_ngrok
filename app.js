@@ -15,21 +15,6 @@ const port = nconf.get('mongoPort');
 const dbName = nconf.get('mongoDatabase');
 const serverHost = "maker-lab-lamba.herokuapp.com";
 
-var userSchema = {
-    "_id": "",
-    "first_name": "",
-    "last_name": "",
-    "password": "",
-    "role": {
-        "customer": false
-    },
-    "cart": [],
-    "buy_history_product": [],
-    "buckets_created": {},
-    "address": {},
-    "products_id_search_history": []
-};
-
 let uri = `mongodb://${user}:${pass}@${host}:${port}`;
 if (nconf.get('mongoDatabase')) {
   uri = `${uri}/${nconf.get('mongoDatabase')}`;
@@ -102,6 +87,20 @@ app.get('/', function (req, res) {
 //      var db = mongoclient.db(dbName);
 //      console.log("create_user1",JSON.stringify(req.body));
 //      let create_user = userSchema;
+        // var userSchema = {
+        //     "_id": "",
+        //     "first_name": "",
+        //     "last_name": "",
+        //     "password": "",
+        //     "role": {
+        //         "customer": false
+        //     },
+        //     "cart": [],
+        //     "buy_history_product": [],
+        //     "buckets_created": {},
+        //     "address": {},
+        //     "products_id_search_history": []
+        // };
 //
 //      // db.collection('users').insert(create_user, {w: 1}, function(err, user){
 //      //   console.log("user added", create_user, user)
