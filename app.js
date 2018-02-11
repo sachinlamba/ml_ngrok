@@ -3,6 +3,7 @@ var bodyParser = require('body-parser')
 const mongodb = require('mongodb');
 const nconf = require('nconf');
 const http = require('http');
+var request = require('request');
 
 var app = express();
 app.use(bodyParser.json());
@@ -13,7 +14,7 @@ const pass = nconf.get('mongoPass');
 const host = nconf.get('mongoHost');
 const port = nconf.get('mongoPort');
 const dbName = nconf.get('mongoDatabase');
-const serverHost = "maker-lab.herokuapp.com";
+const serverHost = "849d0e56.ngrok.io"//"maker-lab.herokuapp.com";
 
 let userSchema = {
     "_id": "",
@@ -93,19 +94,23 @@ app.get('/create_user', function (req, res) {
     });
 })
 
-app.post('/create_user1', function (req, res) {
-   console.log("Got a POST request for the /create_user");
+app.post('/create_user', function (req, res) {
+  console.log("5")
+
+   console.log("Got a POST request for the /create_user",JSON.stringify(req.body));
    mongodb.MongoClient.connect(uri, (err, mongoclient) => {
      if (err) {
        throw err;
      }
+     console.log("6")
      var db = mongoclient.db(dbName);
      console.log("create_user1",JSON.stringify(req.body));
      let create_user = {
-         "_id": "",
-         "first_name": "",
+         "first_name": req.body.name,
          "last_name": "",
          "password": "",
+         "email_id": "",
+         "user_name": "",
          "role": {
              "customer": false
          },
@@ -116,9 +121,13 @@ app.post('/create_user1', function (req, res) {
          "products_id_search_history": []
      };
 
-     // db.collection('users').insert(create_user, {w: 1}, function(err, user){
-     //   console.log("user added", create_user, user)
-     // })
+     db.collection('users').insert(create_user, {w: 1}, function(err, user){
+       console.log("user added - ", create_user)
+       console.log("user added details", user)
+       mongoclient.close();
+       res.json(create_user);
+       res.end();
+     })
     });
 })
 
@@ -130,8 +139,31 @@ app.post('/makerLab', function (req, res){
   // let city = req.body.result.parameters['geo-city']; // city is a required param
   console.log("Intent Name -> ", req.body.result.metadata['intentName']);
   let list_type = req.body.result.parameters['list']; // city is a required param
-  if(list_type == "products"){
-      callProducts().then((output) => {
+  if(req.body.result.metadata['intentName'] == "create user"){
+    let name = req.body.result.parameters['given-name']; // city is a required param
+    createUser(name).then((output) => {
+      // Return the results of the weather API to Dialogflow
+      console.log("dfs", output, typeof output)
+      res.setHeader('Content-Type', 'application/json');
+      res.send(JSON.stringify({ 'speech': output, 'displayText': output }));
+    }).catch((error) => {
+      // If there is an error let the user know
+      res.setHeader('Content-Type', 'application/json');
+      res.send(JSON.stringify({ 'speech': error, 'displayText': error }));
+    });
+  }else{
+    if(list_type == "products"){
+        callProducts().then((output) => {
+          // Return the results of the weather API to Dialogflow
+          res.setHeader('Content-Type', 'application/json');
+          res.send(JSON.stringify({ 'speech': output, 'displayText': output }));
+        }).catch((error) => {
+          // If there is an error let the user know
+          res.setHeader('Content-Type', 'application/json');
+          res.send(JSON.stringify({ 'speech': error, 'displayText': error }));
+        });
+    }else{
+      callUsers().then((output) => {
         // Return the results of the weather API to Dialogflow
         res.setHeader('Content-Type', 'application/json');
         res.send(JSON.stringify({ 'speech': output, 'displayText': output }));
@@ -140,18 +172,60 @@ app.post('/makerLab', function (req, res){
         res.setHeader('Content-Type', 'application/json');
         res.send(JSON.stringify({ 'speech': error, 'displayText': error }));
       });
-  }else{
-    callUsers().then((output) => {
-      // Return the results of the weather API to Dialogflow
-      res.setHeader('Content-Type', 'application/json');
-      res.send(JSON.stringify({ 'speech': output, 'displayText': output }));
-    }).catch((error) => {
-      // If there is an error let the user know
-      res.setHeader('Content-Type', 'application/json');
-      res.send(JSON.stringify({ 'speech': error, 'displayText': error }));
-    });
+    }
   }
 })
+
+function createUser (user_name) {
+  return new Promise((resolve, reject) => {
+    let path = '/create_user';
+    console.log("sdf", typeof request, typeof http.request, "https://" + serverHost + path);
+    let bodyString = JSON.stringify({a:"b"})
+    // resolve(bodyString);
+    console.log("1");
+    var userObject = {name: user_name};
+    request({
+              url: "https://" + serverHost + path,
+              method: "POST",
+              json: true,   // <--Very important!!!
+              body: userObject
+            }, function (error, response, body){
+              if (!error && response.statusCode == 200) {
+                  console.log("success post request for insertion: ",body)
+                  resolve(JSON.stringify(body));
+              }else{
+                console.error("dfg",error);
+                reject(error)
+              }
+            }
+          );
+    // let req =  http.request({host: serverHost, method: "POST",  path: path}, (res) => {
+    //   console.log("2")
+    //     let body = ''; // var to store the response chunks
+    //     res.on('data', (d) => { body += d; }); // store each response chunk
+    //     res.on('end', () => {
+    //       // After all the data has been received parse the JSON for desired data
+    //       let response = JSON.parse(body);
+    //       // Create response
+    //       let a = JSON.stringify(response)
+    //       let output = `Product list in MongoDB mLab ${a}`;
+    //       // response.forEach(function (product, i) {
+    //       //   output += i + " " product.name + " \n"
+    //       // })
+    //       // Resolve the promise with the output text
+    //       console.log(output);
+    //       resolve(output);
+    //     });
+    //     res.on('error', (error) => {
+    //       console.log("3")
+    //       reject(error);
+    //     });
+    //   });
+    //   console.log("4")
+    // req.write(bodyString);
+    // req.end();
+  });
+}
 
 function callProducts () {
   return new Promise((resolve, reject) => {
