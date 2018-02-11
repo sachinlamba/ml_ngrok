@@ -14,8 +14,8 @@ const pass = nconf.get('mongoPass');
 const host = nconf.get('mongoHost');
 const port = nconf.get('mongoPort');
 const dbName = nconf.get('mongoDatabase');
-// const serverHost = "849d0e56.ngrok.io";
-const serverHost = "maker-lab.herokuapp.com";
+const serverHost = "849d0e56.ngrok.io";
+// const serverHost = "maker-lab.herokuapp.com";
 
 let userSchema = {
     "_id": "",
@@ -167,7 +167,9 @@ app.post('/makerLab', function (req, res){
       console.log("logged-in user details -> ", output, typeof output)
       let msg = "";
       output = JSON.parse(output);
-      if(output.length > 0 && output[0].role.customer){
+      if(!output.length){
+        msg = "Details are not correct. plz say like - login me as *******@gmail.com and *****"
+      } else if(output.length > 0 && output[0].role.customer){
         msg = "You are successfully logged in as Customer"
       }else{
         //TODO: update for vendor n cpg..
