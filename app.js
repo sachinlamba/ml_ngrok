@@ -80,6 +80,24 @@ app.get('/list_users', function (req, res) {
     });
 })
 
+app.post('/user_login', function (req, res) {
+   console.log("Got a GET request for the /user_login", req.body);
+   mongodb.MongoClient.connect(uri, (err, mongoclient) => {
+     if (err) {
+       throw err;
+     }
+     var db = mongoclient.db(dbName);
+     let users = req.body;
+     db.collection('users').find(users).toArray(function(err, items) {
+        users = [...items]
+        console.log("users from /user_login",users)
+        mongoclient.close();
+        res.json(users);
+        res.end();
+     });
+    });
+})
+
 app.get('/create_user', function (req, res) {
    console.log("Got a GET request for the /create_user");
    mongodb.MongoClient.connect(uri, (err, mongoclient) => {
@@ -95,8 +113,6 @@ app.get('/create_user', function (req, res) {
 })
 
 app.post('/create_user', function (req, res) {
-  console.log("5")
-
    console.log("Got a POST request for the /create_user",JSON.stringify(req.body));
    mongodb.MongoClient.connect(uri, (err, mongoclient) => {
      if (err) {
@@ -106,13 +122,13 @@ app.post('/create_user', function (req, res) {
      var db = mongoclient.db(dbName);
      console.log("create_user1",JSON.stringify(req.body));
      let create_user = {
-         "first_name": req.body.name,
+         "first_name": "",
          "last_name": "",
-         "password": "",
-         "email_id": "",
+         "password": req.body.password,
+         "email_id": req.body.email_id,
          "user_name": "",
          "role": {
-             "customer": false
+             "customer": true
          },
          "cart": [],
          "buy_history_product": [],
@@ -137,13 +153,40 @@ console.log('API server listening on port: 3000 or ', process.env.PORT)
 
 app.post('/makerLab', function (req, res){
   // let city = req.body.result.parameters['geo-city']; // city is a required param
-  console.log("Intent Name -> ", req.body.result.metadata['intentName']);
+  let intentName = req.body.result.metadata['intentName']
+  console.log("Intent Name -> ", intentName);
   let list_type = req.body.result.parameters['list']; // city is a required param
-  if(req.body.result.metadata['intentName'] == "create user"){
-    let name = req.body.result.parameters['given-name']; // city is a required param
-    createUser(name).then((output) => {
+  if(intentName == "login user"){
+    let checkUser = {
+      email_id: req.body.result.parameters['email_id'],
+      password: req.body.result.parameters['password']
+    };
+    loginUser(checkUser).then((output) => {
       // Return the results of the weather API to Dialogflow
-      console.log("dfs", output, typeof output)
+      console.log("logged-in user details -> ", output, typeof output)
+      let msg = "";
+      output = JSON.parse(output);
+      if(output.length > 0 && output[0].role.customer){
+        msg = "You are successfully logged in as Customer"
+      }else{
+        //TODO: update for vendor n cpg..
+        msg = "You are successfully logged in as Vendor"
+      }
+      res.setHeader('Content-Type', 'application/json');
+      res.send(JSON.stringify({ 'speech': msg, 'displayText': msg }));
+    }).catch((error) => {
+      // If there is an error let the user know
+      res.setHeader('Content-Type', 'application/json');
+      res.send(JSON.stringify({ 'speech': error, 'displayText': error }));
+    });
+  }else if(intentName == "create user"){
+    let new_user = {
+      email_id: req.body.result.parameters['email_id'],
+      password: req.body.result.parameters['password']
+    };
+    createUser(new_user).then((output) => {
+      // Return the results of the weather API to Dialogflow
+      console.log("create user -> ", output, typeof output)
       res.setHeader('Content-Type', 'application/json');
       res.send(JSON.stringify({ 'speech': output, 'displayText': output }));
     }).catch((error) => {
@@ -176,14 +219,35 @@ app.post('/makerLab', function (req, res){
   }
 })
 
-function createUser (user_name) {
+function loginUser(userObject) {
+  return new Promise((resolve, reject) => {
+    let path = '/user_login';
+    console.log("2. user_login", typeof request, typeof http.request, "https://" + serverHost + path);
+    request({
+              url: "https://" + serverHost + path,
+              method: "POST",
+              json: true,   // <--Very important!!!
+              body: userObject
+            }, function (error, response, body){
+              if (!error && response.statusCode == 200) {
+                  console.log("success post request for user login: ",body)
+                  resolve(JSON.stringify(body));
+              }else{
+                console.error("3. user_login",error);
+                reject(error)
+              }
+            }
+          );
+  });
+}
+
+function createUser (userObject) {
   return new Promise((resolve, reject) => {
     let path = '/create_user';
     console.log("sdf", typeof request, typeof http.request, "https://" + serverHost + path);
     let bodyString = JSON.stringify({a:"b"})
     // resolve(bodyString);
     console.log("1");
-    var userObject = {name: user_name};
     request({
               url: "https://" + serverHost + path,
               method: "POST",
