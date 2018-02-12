@@ -7,9 +7,9 @@
       return "Product " + _id.currentIndex;
     },
     "description": '{{lorem(1, "paragraphs")}}',
-    "category": function () {
+    "category": function (feedback) {
       var fruits = ['electronics', 'home product', 'sports'];
-      return fruits['{{floating(1, 3, 1, 0)}}'];
+      return fruits[feedback.integer(0, fruits.length - 1)];
     },
     "image_url": 'http://placehold.it/32x32',
     "price": '{{floating(1000, 4000, 2, "$0,0.00")}}',
