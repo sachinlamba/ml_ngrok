@@ -155,10 +155,55 @@ console.log('API server listening on port: 3000 or ', process.env.PORT)
 app.post('/makerLab', function (req, res){
   // let city = req.body.result.parameters['geo-city']; // city is a required param
   let intentName = req.body.result.metadata['intentName']
-  const contexts = req.body.result.contexts
-  console.log("Intent Name -> ", intentName, "Context -> " , contexts);
+  const contexts = req.body.result.contexts;
+  let contextsObject = {};
+  contexts.map(context => {
+    return contextsObject[context.name] = context;
+  })
+  console.log("Intent Name -> ", intentName, "Context -> " , contexts, "contextsObject : " , contextsObject);
   let list_type = req.body.result.parameters['list']; // city is a required param
-  if(intentName == "login user"){
+  if(intentName == "logout user"){
+    // Return the results of the weather API to Dialogflow
+    console.log("logged-out user details -> ", contextsObject.login)
+    let msg = "Plz login to do logout from this app.";
+
+    let contextOut = [];
+    if(contextsObject.login && contextsObject.login.parameters && contextsObject.login.parameters.email_id != ""){
+      msg = "Logout successfully";
+      contextOut = [
+                      {
+                        "name": "login",
+                        "lifespan": 0,
+                        "parameters": {
+                          "email_id": ""
+                        }
+                      }
+                    ];
+    }
+    res.setHeader('Content-Type', 'application/json');
+    res.send(JSON.stringify({ 'speech': msg, 'displayText': msg, "contextOut": contextOut,resetContexts : true,
+                      data: {
+                                "google": {
+                                    "expect_user_response": true,
+                                    "rich_response": {
+                                      "items": [
+                                          {
+                                            "simpleResponse": {
+                                              "textToSpeech": msg,
+                                              "displayText": msg
+                                            }
+                                          }
+                                      ],
+                                      "suggestions":
+                                        [
+                                          {"title": "Want to Login Again?"},
+                                          {"title": "You can search our Products without login too."}
+                                        ]
+                                  }
+                                }
+                            }
+                          }));
+  }else if(intentName == "login user"){
     let checkUser = {
       email_id: req.body.result.parameters['email_id'],
       password: req.body.result.parameters['password']
@@ -195,46 +240,16 @@ app.post('/makerLab', function (req, res){
                                         "items": [
                                             {
                                               "simpleResponse": {
-                                                  "textToSpeech":"This is the first simple response for a basic card"
-                                              }
-                                            },
-                                            {
-                                              "basicCard": {
-                                                "title": "Title: this is a title",
-                                                "formattedText": "This is a basic card.  Text in a\n      basic card can
-                                                                  include \"quotes\" and most other unicode characters\n
-                                                                  including emoji 📱.  Basic cards also support some markdown\n
-                                                                  formatting like *emphasis* or _italics_, **strong** or __bold__,\n
-                                                                  and ***bold itallic*** or ___strong emphasis___ as well as other things\n
-                                                                  like line  \nbreaks",
-                                                "subtitle": "This is a subtitle",
-                                                "image": {
-                                                  "url":"https://developers.google.com/actions/images/badges/XPM_BADGING_GoogleAssistant_VER.png",
-                                                  "accessibilityText":"Image alternate text"
-                                                },
-                                                "buttons": [
-                                                  {
-                                                    "title":"This is a button",
-                                                    "openUrlAction":{
-                                                      "url":"https://assistant.google.com/"
-                                                    }
-                                                  }
-                                                ]
-                                              }
-                                            },
-                                            {
-                                              "simpleResponse": {
-                                                "textToSpeech":"This is the 2nd simple response ",
-                                                "displayText":"This is the 2nd simple response"
+                                                "textToSpeech": msg,
+                                                "displayText": msg
                                               }
                                             }
                                         ],
                                         "suggestions":
                                           [
-                                            {"title":"Basic Card"},
-                                            {"title":"List"},
-                                            {"title":"Carousel"},
-                                            {"title":"Suggestions"}
+                                            {"title": output.length ? "Create Bucket" : "Not signup till now? Want to SignUp.."},
+                                            {"title": output.length ? "Update Profile" : "Try again to login, if registerd already"},
+                                            {"title":output.length ? "Search Products" : "You can search our Products without login too."}
                                           ]
                                     }
                                   }
