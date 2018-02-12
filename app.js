@@ -417,28 +417,46 @@ app.post('/makerLab', function (req, res){
           let contextOut = [];
           items_card = [];
           output.forEach((product, index) => {
-            if(items_card.length < 4){
+            if(items_card.length < 10){
             msg += "["+index + "]. " + product.name + "\n" +
                     // "Description : " + product.description + "\n" +
-                    "Price: " + product.price + "\n\n";
+                    "Price: " + product.price;
             if(product.deals.isDeal){
               msg += "We also have a discount on this product."
             }
-              items_card.push({
-                "basicCard": {
-                  title: product.name,
-                  formattedText: product.description,
+            msg += "\n\n";
+              items_card.push(
+                {
+                  "description": "Price: "+ product.price,
                   "image": {
-                    "url":product.image_url,
+                    "url": product.image_url,
                     "accessibilityText": "product from category - " + product.category
                   },
-                  "buttons": [
-                    {
-                      "title":"Want to buy this?"
-                    }
-                  ]
+                  "optionInfo": {
+                    "key": String(index),
+                    "synonyms": [
+                      "thing " + String(index),
+                      "object " + String(index)
+                    ]
+                  },
+                  "title": product.name
                 }
-              })
+              //   {
+              //   "basicCard": {
+              //     title: product.name,
+              //     // formattedText: product.description,
+              //     "image": {
+              //       "url":product.image_url,
+              //       "accessibilityText": "product from category - " + product.category
+              //     },
+              //     "buttons": [
+              //       {
+              //         "title":"Want to buy this?"
+              //       }
+              //     ]
+              //   }
+              // }
+            )
             }
           })
           console.log("msg and google card1232->", msg, items_card);
@@ -447,36 +465,37 @@ app.post('/makerLab', function (req, res){
           res.send(JSON.stringify({ 'speech': msg, 'displayText': msg,
           "messages": [
   {
-    "items": [
-      {
-        "description": "Option One Description",
-        "image": {
-          "url": "http://imageOneUrl.com"
-        },
-        "optionInfo": {
-          "key": "itemOne",
-          "synonyms": [
-            "thing one",
-            "object one"
-          ]
-        },
-        "title": "Option One Title"
-      },
-      {
-        "description": "Option Two Description",
-        "image": {
-          "url": "http://imageTwoUrl.com"
-        },
-        "optionInfo": {
-          "key": "itemTwo",
-          "synonyms": [
-            "thing two",
-            "object two"
-          ]
-        },
-        "title": "Option Two Title"
-      }
-    ],
+    "items": items_card,
+    // [
+    //   {
+    //     "description": "Option One Description",
+    //     "image": {
+    //       "url": "http://imageOneUrl.com"
+    //     },
+    //     "optionInfo": {
+    //       "key": "itemOne",
+    //       "synonyms": [
+    //         "thing one",
+    //         "object one"
+    //       ]
+    //     },
+    //     "title": "Option One Title"
+    //   },
+    //   {
+    //     "description": "Option Two Description",
+    //     "image": {
+    //       "url": "http://imageTwoUrl.com"
+    //     },
+    //     "optionInfo": {
+    //       "key": "itemTwo",
+    //       "synonyms": [
+    //         "thing two",
+    //         "object two"
+    //       ]
+    //     },
+    //     "title": "Option Two Title"
+    //   }
+    // ],
     "platform": "google",
     "type": "carousel_card"
   }
