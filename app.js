@@ -14,7 +14,7 @@ const pass = nconf.get('mongoPass');
 const host = nconf.get('mongoHost');
 const port = nconf.get('mongoPort');
 const dbName = nconf.get('mongoDatabase');
-const serverHost = "849d0e56.ngrok.io";
+const serverHost = "90670e85.ngrok.io";
 // const serverHost = "maker-lab.herokuapp.com";
 
 let userSchema = {
@@ -155,7 +155,8 @@ console.log('API server listening on port: 3000 or ', process.env.PORT)
 app.post('/makerLab', function (req, res){
   // let city = req.body.result.parameters['geo-city']; // city is a required param
   let intentName = req.body.result.metadata['intentName']
-  console.log("Intent Name -> ", intentName);
+  const contexts = req.body.result.contexts
+  console.log("Intent Name -> ", intentName, "Context -> " , contexts);
   let list_type = req.body.result.parameters['list']; // city is a required param
   if(intentName == "login user"){
     let checkUser = {
@@ -167,16 +168,78 @@ app.post('/makerLab', function (req, res){
       console.log("logged-in user details -> ", output, typeof output)
       let msg = "";
       output = JSON.parse(output);
+      let contextOut = [];
       if(!output.length){
-        msg = "Details are not correct. plz say like - login me as *******@gmail.com and *****"
+        msg = "Details are not correct. plz say like - login me by *******@gmail.com and *****"
       } else if(output.length > 0 && output[0].role.customer){
+        contextOut = [
+                        {
+                          "name": "login",
+                          "lifespan": 50,
+                          "parameters": {
+                            "email_id": output[0].email_id
+                          }
+                        }
+                      ];
         msg = "You are successfully logged in as Customer"
       }else{
         //TODO: update for vendor n cpg..
         msg = "You are successfully logged in as Vendor"
       }
       res.setHeader('Content-Type', 'application/json');
-      res.send(JSON.stringify({ 'speech': msg, 'displayText': msg }));
+      res.send(JSON.stringify({ 'speech': msg, 'displayText': msg, "contextOut": contextOut,
+                        data: {
+                                  "google": {
+                                      "expect_user_response": true,
+                                      "rich_response": {
+                                        "items": [
+                                            {
+                                              "simpleResponse": {
+                                                  "textToSpeech":"This is the first simple response for a basic card"
+                                              }
+                                            },
+                                            {
+                                              "basicCard": {
+                                                "title": "Title: this is a title",
+                                                "formattedText": "This is a basic card.  Text in a\n      basic card can
+                                                                  include \"quotes\" and most other unicode characters\n
+                                                                  including emoji 📱.  Basic cards also support some markdown\n
+                                                                  formatting like *emphasis* or _italics_, **strong** or __bold__,\n
+                                                                  and ***bold itallic*** or ___strong emphasis___ as well as other things\n
+                                                                  like line  \nbreaks",
+                                                "subtitle": "This is a subtitle",
+                                                "image": {
+                                                  "url":"https://developers.google.com/actions/images/badges/XPM_BADGING_GoogleAssistant_VER.png",
+                                                  "accessibilityText":"Image alternate text"
+                                                },
+                                                "buttons": [
+                                                  {
+                                                    "title":"This is a button",
+                                                    "openUrlAction":{
+                                                      "url":"https://assistant.google.com/"
+                                                    }
+                                                  }
+                                                ]
+                                              }
+                                            },
+                                            {
+                                              "simpleResponse": {
+                                                "textToSpeech":"This is the 2nd simple response ",
+                                                "displayText":"This is the 2nd simple response"
+                                              }
+                                            }
+                                        ],
+                                        "suggestions":
+                                          [
+                                            {"title":"Basic Card"},
+                                            {"title":"List"},
+                                            {"title":"Carousel"},
+                                            {"title":"Suggestions"}
+                                          ]
+                                    }
+                                  }
+                              }
+                            }));
     }).catch((error) => {
       // If there is an error let the user know
       res.setHeader('Content-Type', 'application/json');
