@@ -113,6 +113,57 @@ app.get('/create_user', function (req, res) {
     });
 })
 
+app.post('/user_update', function (req, res) {
+   console.log("Got a POST request for the /user_update",JSON.stringify(req.body));
+   mongodb.MongoClient.connect(uri, (err, mongoclient) => {
+     if (err) {
+       throw err;
+     }
+     console.log("6")
+     var db = mongoclient.db(dbName);
+     console.log("user_update",JSON.stringify(req.body));
+     let update_user = req.body;
+     let search_user = { email_id: update_user.email_id};
+     console.log("update_user", update_user);
+     // res.json(update_user);
+     // res.end();
+     db.collection('users').find(search_user).toArray(function(err, items) {
+        console.log("user from /user_update",items)
+        db.collection('users').updateOne(search_user, {$set : update_user}, function(err, user){
+          console.log("user updated - ", update_user)
+          // console.log("user updated return - ", user)--> it is retunrnig a object of all detials.Socket etc..
+          mongoclient.close();
+          res.json(update_user);
+          res.end();
+        })
+     });
+
+     // let create_user = {
+     //     "first_name": "",
+     //     "last_name": "",
+     //     "password": req.body.password,
+     //     "email_id": req.body.email_id,
+     //     "user_name": "",
+     //     "role": {
+     //         "customer": true
+     //     },
+     //     "cart": [],
+     //     "buy_history_product": [],
+     //     "buckets_created": {},
+     //     "address": {},
+     //     "products_id_search_history": []
+     // };
+     //
+     // db.collection('users').insert(create_user, {w: 1}, function(err, user){
+     //   console.log("user added - ", create_user)
+     //   console.log("user added details", user)
+     //   mongoclient.close();
+     //   res.json(create_user);
+     //   res.end();
+     // })
+    });
+})
+
 app.post('/create_user', function (req, res) {
    console.log("Got a POST request for the /create_user",JSON.stringify(req.body));
    mongodb.MongoClient.connect(uri, (err, mongoclient) => {
@@ -162,7 +213,83 @@ app.post('/makerLab', function (req, res){
   })
   console.log("Intent Name -> ", intentName, "Context -> " , contexts, "contextsObject : " , contextsObject);
   let list_type = req.body.result.parameters['list']; // city is a required param
-  if(intentName == "logout user"){
+  if(intentName == "update user details"){
+    console.log("update user details -> ", contextsObject.login)
+    let msg = "";
+    if(contextsObject.login && contextsObject.login.parameters && contextsObject.login.parameters.email_id != ""){
+      let updateUserDetails = {
+        email_id: contextsObject.login.parameters.email_id,
+        [req.body.result.parameters['user_parameter']]: req.body.result.parameters['user_value']
+      };
+      updateUser(updateUserDetails).then((output) => {
+        // Return the results of the weather API to Dialogflow
+        console.log("logged-in users udpated details -> ", output, typeof output)
+        output = JSON.parse(output);
+        let msg = "Update successfully for " + output.email_id + ".";
+        res.setHeader('Content-Type', 'application/json');
+        res.send(JSON.stringify({ 'speech': msg, 'displayText': msg,
+                          data: {
+                                    "google": {
+                                        "expect_user_response": true,
+                                        "rich_response": {
+                                          "items": [
+                                              {
+                                                "simpleResponse": {
+                                                  "textToSpeech": msg,
+                                                  "displayText": msg
+                                                }
+                                              }
+                                          ],
+                                          "suggestions":
+                                            [
+                                              {"title": "Want to logout?"},
+                                              {"title": "update phone Number/address/age/name etc."},
+                                              {"title": "UPda"}
+                                            ]
+                                      }
+                                    }
+                                }
+                              }));
+      }).catch((error) => {
+        // If there is an error let the user know
+        res.setHeader('Content-Type', 'application/json');
+        res.send(JSON.stringify({ 'speech': error, 'displayText': error }));
+      });
+    }else{
+      msg = "Plz login to update profile.";
+      contextOut = [
+                      {
+                        "name": "login",
+                        "lifespan": 0,
+                        "parameters": {
+                          "email_id": ""
+                        }
+                      }
+                    ];
+      res.setHeader('Content-Type', 'application/json');
+      res.send(JSON.stringify({ 'speech': msg, 'displayText': msg, "contextOut": contextOut,resetContexts : true,
+                        data: {
+                                  "google": {
+                                      "expect_user_response": true,
+                                      "rich_response": {
+                                        "items": [
+                                            {
+                                              "simpleResponse": {
+                                                "textToSpeech": msg,
+                                                "displayText": msg
+                                              }
+                                            }
+                                        ],
+                                        "suggestions":
+                                          [
+                                            {"title": "You can search our Products without login too."}
+                                          ]
+                                    }
+                                  }
+                              }
+                            }));
+    }
+  }else if(intentName == "logout user"){
     // Return the results of the weather API to Dialogflow
     console.log("logged-out user details -> ", contextsObject.login)
     let msg = "Plz login to do logout from this app.";
@@ -300,6 +427,28 @@ app.post('/makerLab', function (req, res){
   }
 })
 
+function updateUser(userObject) {
+  return new Promise((resolve, reject) => {
+    let path = '/user_update';
+    console.log("2. user_update", typeof request, typeof http.request, "https://" + serverHost + path);
+    request({
+              url: "https://" + serverHost + path,
+              method: "POST",
+              json: true,   // <--Very important!!!
+              body: userObject
+            }, function (error, response, body){
+              if (!error && response.statusCode == 200) {
+                  console.log("success post request for user details update: ",body)
+                  resolve(JSON.stringify(body));
+              }else{
+                console.error("3. user_update",error);
+                reject(error)
+              }
+            }
+          );
+  });
+}
+
 function loginUser(userObject) {
   return new Promise((resolve, reject) => {
     let path = '/user_login';
@@ -344,31 +493,6 @@ function createUser (userObject) {
               }
             }
           );
-    // let req =  http.request({host: serverHost, method: "POST",  path: path}, (res) => {
-    //   console.log("2")
-    //     let body = ''; // var to store the response chunks
-    //     res.on('data', (d) => { body += d; }); // store each response chunk
-    //     res.on('end', () => {
-    //       // After all the data has been received parse the JSON for desired data
-    //       let response = JSON.parse(body);
-    //       // Create response
-    //       let a = JSON.stringify(response)
-    //       let output = `Product list in MongoDB mLab ${a}`;
-    //       // response.forEach(function (product, i) {
-    //       //   output += i + " " product.name + " \n"
-    //       // })
-    //       // Resolve the promise with the output text
-    //       console.log(output);
-    //       resolve(output);
-    //     });
-    //     res.on('error', (error) => {
-    //       console.log("3")
-    //       reject(error);
-    //     });
-    //   });
-    //   console.log("4")
-    // req.write(bodyString);
-    // req.end();
   });
 }
 
