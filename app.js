@@ -14,7 +14,7 @@ const pass = nconf.get('mongoPass');
 const host = nconf.get('mongoHost');
 const port = nconf.get('mongoPort');
 const dbName = nconf.get('mongoDatabase');
-const serverHost = "90670e85.ngrok.io";
+const serverHost = "c6035b0c.ngrok.io";
 // const serverHost = "maker-lab.herokuapp.com";
 
 let userSchema = {
@@ -411,48 +411,188 @@ app.post('/makerLab', function (req, res){
   }else if(list_type == "products"){
         callProducts().then((output) => {
           // Return the results of the weather API to Dialogflow
-          let msg = "Products List : ";
-          console.log("products list", output, typeof output);
+          let msg = "Products List :\n";
+          console.log("products list here", output, typeof output);
           output = JSON.parse(output);
           let contextOut = [];
           items_card = [];
           output.forEach((product, index) => {
-            msg += index + ". " + product.name + "\n" +
-                    "Description : " + product.description + "\n" +
-                    "Price: " + product.price + "\n";
+            if(items_card.length < 4){
+            msg += "["+index + "]. " + product.name + "\n" +
+                    // "Description : " + product.description + "\n" +
+                    "Price: " + product.price + "\n\n";
             if(product.deals.isDeal){
               msg += "We also have a discount on this product."
             }
-            items_card.push({
-              "basicCard": {
-                title: product.name,
-                formattedText: product.description,
-                "image": {
-                  "url":product.image_url,
-                  "accessibilityText": "product from category - " + product.category
-                },
-                "buttons": [
-                  {
-                    "title":"Want to buy this"
-                  }
-                ]
-              }
-            })
+              items_card.push({
+                "basicCard": {
+                  title: product.name,
+                  formattedText: product.description,
+                  "image": {
+                    "url":product.image_url,
+                    "accessibilityText": "product from category - " + product.category
+                  },
+                  "buttons": [
+                    {
+                      "title":"Want to buy this?"
+                    }
+                  ]
+                }
+              })
+            }
           })
-          console.log("products list", msg, items_card);
+          console.log("msg and google card1232->", msg, items_card);
 
           res.setHeader('Content-Type', 'application/json');
           res.send(JSON.stringify({ 'speech': msg, 'displayText': msg,
-                                    data: {
-                                          "google": {
-                                                "expect_user_response": true,
-                                                "rich_response": {
-                                                "items": items_card,
-                                                "suggestions":[]
-                                              }
-                                            }
-                                        }
+          "messages": [
+  {
+    "items": [
+      {
+        "description": "Option One Description",
+        "image": {
+          "url": "http://imageOneUrl.com"
+        },
+        "optionInfo": {
+          "key": "itemOne",
+          "synonyms": [
+            "thing one",
+            "object one"
+          ]
+        },
+        "title": "Option One Title"
+      },
+      {
+        "description": "Option Two Description",
+        "image": {
+          "url": "http://imageTwoUrl.com"
+        },
+        "optionInfo": {
+          "key": "itemTwo",
+          "synonyms": [
+            "thing two",
+            "object two"
+          ]
+        },
+        "title": "Option Two Title"
+      }
+    ],
+    "platform": "google",
+    "type": "carousel_card"
+  }
+]
+//               data: { google: {
+//     "conversationToken": "",
+//     "expectUserResponse": true,
+//     "expectedInputs": [
+//         {
+//             "inputPrompt": {
+//                 "richInitialPrompt": {
+//                     "items": [
+//                         {
+//                             "simpleResponse": {
+//                                 "textToSpeech": "Math and prime numbers it is!"
+//                             }
+//                         },
+//                         {
+//                             "basicCard": {
+//                                 "title": "Math & prime numbers",
+//                                 "formattedText": "42 is an even composite number. It\n    is composed of three distinct prime numbers multiplied together. It\n    has a total of eight divisors. 42 is an abundant number, because the\n    sum of its proper divisors 54 is greater than itself. To count from\n    1 to 42 would take you about twenty-one…",
+//                                 "image": {
+//                                     "url": "https://example.google.com/42.png",
+//                                     "accessibilityText": "Image alternate text"
+//                                 },
+//                                 "buttons": [
+//                                     {
+//                                         "title": "Read more",
+//                                         "openUrlAction": {
+//                                             "url": "https://example.google.com/mathandprimes"
+//                                         }
+//                                     }
+//                                 ],
+//                                 "imageDisplayOptions": "CROPPED"
+//                             }
+//                         }
+//                     ],
+//                     "suggestions": []
+//                 }
+//             },
+//             "possibleIntents": [
+//                 {
+//                     "intent": "actions.intent.TEXT"
+//                 }
+//             ]
+//         }
+//     ]
+// }
+// }
                                }));
+
+
+                                       //       {
+                                       //           "google": {
+                                       //             "expect_user_response": true,
+                                       //             "rich_response": {
+                                       //                     "items": [
+                                       //                       {
+                                       //                         "simpleResponse": {
+                                       //                             "textToSpeech":"This is the list of products card"
+                                       //                         }
+                                       //                       },
+                                       //                       {
+                                       //                         "basicCard": {
+                                       //                           "title":"Title: this is a title123",
+                                       //                           "formattedText":"This is a123 basic card.  Text in a\n      basic card can include \"quotes\" and most other unicode characters\n      including emoji 📱.  Basic cards also support some markdown\n      formatting like *emphasis* or _italics_, **strong** or __bold__,\n      and ***bold itallic*** or ___strong emphasis___ as well as other things\n      like line  \nbreaks",
+                                       //                           "subtitle":
+                                       //                           "This is a subt123itle",
+                                       //                           "image": {
+                                       //                             "url":"https://developers.google.com/actions/images/badges/XPM_BADGING_GoogleAssistant_VER.png",
+                                       //                             "accessibilityText":"Image altefdrnate text"
+                                       //                           },
+                                       //                           "buttons": [
+                                       //                             {
+                                       //                               "title":"This is adsf button",
+                                       //                               "openUrlAction":{
+                                       //                                 "url":"https://assistant.google.com/"
+                                       //                               }
+                                       //                             }
+                                       //                           ]
+                                       //                         }
+                                       //                       },
+                                       //                       {
+                                       //                         "basicCard": {
+                                       //                           "title":"Title: this is675676565 a title",
+                                       //                           "formattedText":"This is a ba547sic card.  Text in a\n      basic card can include \"quotes\" and most other unicode characters\n      including emoji 📱.  Basic cards also support some markdown\n      formatting like *emphasis* or _italics_, **strong** or __bold__,\n      and ***bold itallic*** or ___strong emphasis___ as well as other things\n      like line  \nbreaks",
+                                       //                           "subtitle":
+                                       //                           "This is a 978subtitle",
+                                       //                           "image": {
+                                       //                             "url":"https://developers.google.com/actions/images/badges/XPM_BADGING_GoogleAssistant_VER.png",
+                                       //                             "accessibilityText":"Imakgge alternate text"
+                                       //                           },
+                                       //                           "buttons": [
+                                       //                             {
+                                       //                               "title":"This is07 a button",
+                                       //                               "openUrlAction":{
+                                       //                                 "url":"https://assistant.google.com/"
+                                       //                               }
+                                       //                             }
+                                       //                           ]
+                                       //                         }
+                                       //                       }
+                                       //                     ],
+                                       //                     "suggestions":  []
+                                       //                   }
+                                       //             }
+                                       // }
+                                                                   // {
+                                                                   //       "google": {
+                                                                   //             "expect_user_response": true,
+                                                                   //             "rich_response": {
+                                                                   //               "items": items_card,
+                                                                   //               "suggestions":[]
+                                                                   //             }
+                                                                   //       }
+                                                                   //   }
         }).catch((error) => {
           // If there is an error let the user know
           res.setHeader('Content-Type', 'application/json');
