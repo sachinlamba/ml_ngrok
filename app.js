@@ -394,37 +394,71 @@ app.post('/makerLab', function (req, res){
     };
     createUser(new_user).then((output) => {
       // Return the results of the weather API to Dialogflow
+      let msg = "Registation unsuccessful";
+      output = JSON.parse(output);
+      let contextOut = [];
+      if(Object.keys(output).length){
+        msg = "Registation successful."
+      }
       console.log("create user -> ", output, typeof output)
       res.setHeader('Content-Type', 'application/json');
-      res.send(JSON.stringify({ 'speech': output, 'displayText': output }));
+      res.send(JSON.stringify({ 'speech': msg, 'displayText': msg }));
     }).catch((error) => {
       // If there is an error let the user know
       res.setHeader('Content-Type', 'application/json');
       res.send(JSON.stringify({ 'speech': error, 'displayText': error }));
     });
-  }else{
-    if(list_type == "products"){
+  }else if(list_type == "products"){
         callProducts().then((output) => {
           // Return the results of the weather API to Dialogflow
+          let msg = "Products List : ";
+          console.log("products list", output, typeof output);
+          output = JSON.parse(output);
+          let contextOut = [];
+          items_card = [];
+          output.forEach((product, index) => {
+            msg += index + ". " + product.name + "\n" +
+                    "Description : " + product.description + "\n" +
+                    "Price: " + product.price + "\n";
+            if(product.deals.isDeal){
+              msg += "We also have a discount on this product."
+            }
+            items_card.push({
+              "basicCard": {
+                title: product.name,
+                formattedText: product.description,
+                "image": {
+                  "url":product.image_url,
+                  "accessibilityText": "product from category - " + product.category
+                },
+                "buttons": [
+                  {
+                    "title":"Want to buy this"
+                  }
+                ]
+              }
+            })
+          })
+          console.log("products list", msg, items_card);
+
           res.setHeader('Content-Type', 'application/json');
-          res.send(JSON.stringify({ 'speech': output, 'displayText': output }));
+          res.send(JSON.stringify({ 'speech': msg, 'displayText': msg,
+                                    data: {
+                                          "google": {
+                                                "expect_user_response": true,
+                                                "rich_response": {
+                                                "items": items_card,
+                                                "suggestions":[]
+                                              }
+                                            }
+                                        }
+                               }));
         }).catch((error) => {
           // If there is an error let the user know
           res.setHeader('Content-Type', 'application/json');
           res.send(JSON.stringify({ 'speech': error, 'displayText': error }));
         });
-    }else{
-      callUsers().then((output) => {
-        // Return the results of the weather API to Dialogflow
-        res.setHeader('Content-Type', 'application/json');
-        res.send(JSON.stringify({ 'speech': output, 'displayText': output }));
-      }).catch((error) => {
-        // If there is an error let the user know
-        res.setHeader('Content-Type', 'application/json');
-        res.send(JSON.stringify({ 'speech': error, 'displayText': error }));
-      });
     }
-  }
 })
 
 function updateUser(userObject) {
@@ -512,8 +546,8 @@ function callProducts () {
         //   output += i + " " product.name + " \n"
         // })
         // Resolve the promise with the output text
-        console.log(output);
-        resolve(output);
+        console.log(body);
+        resolve(body);
       });
       res.on('error', (error) => {
         reject(error);
