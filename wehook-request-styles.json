@@ -1,0 +1,68 @@
+Webhook request from Dialogflow itself ->  
+Request body :  
+{ 
+	id: 'aa8b9437-a1ae-4ad1-9d6e-7413952cafe4',
+  timestamp: '2018-02-13T12:28:00.852Z',
+  lang: 'en',
+  result: { 
+		source: 'agent',
+		resolvedQuery: 'product list',
+		speech: '',
+		action: '',
+		actionIncomplete: false,
+		parameters: { list: 'products' },
+		contexts: [],
+		metadata: { 
+			intentId: '0f98640d-2786-4e03-b32c-87999aca8a51',
+			webhookUsed: 'true',
+			webhookForSlotFillingUsed: 'false',
+			intentName: 'type-list' 
+		},
+		fulfillment: { speech: '', messages: [Object] },
+		score: 1 
+	 },
+  status: { code: 200, errorType: 'success', webhookTimedOut: false },
+  sessionId: 'e686c7e0-e8c4-434e-8250-d80b5f03a52c' 
+}
+
+Webhook request from google assistent->
+Request body :  
+{ 
+		originalRequest: { 
+			source: 'google',
+			version: '2',
+			data: { 
+				isInSandbox: true,
+				surface: [Object],
+				inputs: [Object],
+				user: [Object],
+				conversation: [Object],
+				availableSurfaces: [Object] 
+			}
+		},
+		id: 'bd05830b-e21a-4248-8f12-23f02f67113a',
+		timestamp: '2018-02-13T12:28:57.623Z',
+		lang: 'en-us',
+		result: { 
+			source: 'agent',
+			resolvedQuery: 'product list',
+			speech: '',
+			action: '',
+			actionIncomplete: false,
+			parameters: { list: 'products' },
+			contexts: [ [Object], [Object], [Object], [Object], [Object] ],
+			metadata: { 
+				matchedParameters: [Object],
+				intentName: 'type-list',
+				intentId: '0f98640d-2786-4e03-b32c-87999aca8a51',
+				webhookUsed: 'true',
+				webhookForSlotFillingUsed: 'false',
+				nluResponseTime: 8 
+			},
+			fulfillment: { speech: '', messages: [Object] },
+			score: 1 
+		},
+		status: { code: 200, errorType: 'success', webhookTimedOut: false },
+		sessionId: '1518524928554' 
+}
+
