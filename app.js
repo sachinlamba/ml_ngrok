@@ -14,8 +14,10 @@ const pass = nconf.get('mongoPass');
 const host = nconf.get('mongoHost');
 const port = nconf.get('mongoPort');
 const dbName = nconf.get('mongoDatabase');
-const serverHost = "c6035b0c.ngrok.io";
-// const serverHost = "maker-lab.herokuapp.com";
+const serverHost = "dd1fca99.ngrok.io";
+if(process.env.PORT){//if webhook and app is runnig on heroku..
+  serverHost = "maker-lab.herokuapp.com";
+}
 
 let userSchema = {
     "_id": "",
@@ -205,29 +207,113 @@ console.log('API server listening on port: 3000 or ', process.env.PORT)
 
 app.post('/makerLab', function (req, res){
   // let city = req.body.result.parameters['geo-city']; // city is a required param
-  let intentName = req.body.result.metadata['intentName']
-  const contexts = req.body.result.contexts;
-  let contextsObject = {};
+  const intentName = req.body.result.metadata['intentName'] + "fds",
+        contexts = req.body.result.contexts,
+        list_type = req.body.result.parameters['list'];
+  let msg = "",
+      contextsObject = {};
   contexts.map(context => {
     return contextsObject[context.name] = context;
   })
-  console.log("Intent Name -> ", intentName, "Context -> " , contexts, "contextsObject : " , contextsObject);
-  let list_type = req.body.result.parameters['list']; // city is a required param
-  if(intentName == "update user details"){
-    console.log("update user details -> ", contextsObject.login)
-    let msg = "";
-    if(contextsObject.login && contextsObject.login.parameters && contextsObject.login.parameters.email_id != ""){
-      let updateUserDetails = {
-        email_id: contextsObject.login.parameters.email_id,
-        [req.body.result.parameters['user_parameter']]: req.body.result.parameters['user_value']
-      };
-      updateUser(updateUserDetails).then((output) => {
+  console.log("Webhook POST /makerLab ----->>> \n\t\tIntent Called -> [", intentName, "]. \n\t\tcontextsObject : " , contextsObject);
+  console.log("Request body : ", req.body);
+  switch(intentName){
+    case "update user details":
+        console.log("In Intent - update user details -> ", contextsObject.login)
+        msg = "";
+        if(contextsObject.login && contextsObject.login.parameters && contextsObject.login.parameters.email_id != ""){
+          let updateUserDetails = {
+            email_id: contextsObject.login.parameters.email_id,
+            [req.body.result.parameters['user_parameter']]: req.body.result.parameters['user_value']
+          };
+          updateUser(updateUserDetails).then((output) => {
+            // Return the results of the weather API to Dialogflow
+            console.log("logged-in users udpated details -> ", output, typeof output)
+            output = JSON.parse(output);
+            let msg = "Update successfully for " + output.email_id + ".";
+            res.setHeader('Content-Type', 'application/json');
+            res.send(JSON.stringify({ 'speech': msg, 'displayText': msg,
+                              data: {
+                                        "google": {
+                                            "expect_user_response": true,
+                                            "rich_response": {
+                                              "items": [
+                                                  {
+                                                    "simpleResponse": {
+                                                      "textToSpeech": msg,
+                                                      "displayText": msg
+                                                    }
+                                                  }
+                                              ],
+                                              "suggestions":
+                                                [
+                                                  {"title": "Want to logout?"},
+                                                  {"title": "update phone Number/address/age/name etc."},
+                                                  {"title": "UPda"}
+                                                ]
+                                          }
+                                        }
+                                    }
+                                  }));
+          }).catch((error) => {
+            // If there is an error let the user know
+            res.setHeader('Content-Type', 'application/json');
+            res.send(JSON.stringify({ 'speech': error, 'displayText': error }));
+          });
+        }else{
+          msg = "Plz login to update profile.";
+          contextOut = [
+                          {
+                            "name": "login",
+                            "lifespan": 0,
+                            "parameters": {
+                              "email_id": ""
+                            }
+                          }
+                        ];
+          res.setHeader('Content-Type', 'application/json');
+          res.send(JSON.stringify({ 'speech': msg, 'displayText': msg, "contextOut": contextOut,resetContexts : true,
+                            data: {
+                                      "google": {
+                                          "expect_user_response": true,
+                                          "rich_response": {
+                                            "items": [
+                                                {
+                                                  "simpleResponse": {
+                                                    "textToSpeech": msg,
+                                                    "displayText": msg
+                                                  }
+                                                }
+                                            ],
+                                            "suggestions":
+                                              [
+                                                {"title": "You can search our Products without login too."}
+                                              ]
+                                        }
+                                      }
+                                  }
+                                }));
+        }
+        break;
+    case "logout user":
         // Return the results of the weather API to Dialogflow
-        console.log("logged-in users udpated details -> ", output, typeof output)
-        output = JSON.parse(output);
-        let msg = "Update successfully for " + output.email_id + ".";
+        console.log("logged-out user details -> ", contextsObject.login)
+        msg = "Plz login to do logout from this app.";
+        let contextOut = [];
+        if(contextsObject.login && contextsObject.login.parameters && contextsObject.login.parameters.email_id != ""){
+          msg = "Logout successfully";
+          contextOut = [
+                          {
+                            "name": "login",
+                            "lifespan": 0,
+                            "parameters": {
+                              "email_id": ""
+                            }
+                          }
+                        ];
+        }
         res.setHeader('Content-Type', 'application/json');
-        res.send(JSON.stringify({ 'speech': msg, 'displayText': msg,
+        res.send(JSON.stringify({ 'speech': msg, 'displayText': msg, "contextOut": contextOut,resetContexts : true,
                           data: {
                                     "google": {
                                         "expect_user_response": true,
@@ -242,228 +328,170 @@ app.post('/makerLab', function (req, res){
                                           ],
                                           "suggestions":
                                             [
-                                              {"title": "Want to logout?"},
-                                              {"title": "update phone Number/address/age/name etc."},
-                                              {"title": "UPda"}
+                                              {"title": "Want to Login Again?"},
+                                              {"title": "You can search our Products without login too."}
                                             ]
                                       }
                                     }
                                 }
-                              }));
-      }).catch((error) => {
-        // If there is an error let the user know
-        res.setHeader('Content-Type', 'application/json');
-        res.send(JSON.stringify({ 'speech': error, 'displayText': error }));
-      });
-    }else{
-      msg = "Plz login to update profile.";
-      contextOut = [
-                      {
-                        "name": "login",
-                        "lifespan": 0,
-                        "parameters": {
-                          "email_id": ""
-                        }
-                      }
-                    ];
-      res.setHeader('Content-Type', 'application/json');
-      res.send(JSON.stringify({ 'speech': msg, 'displayText': msg, "contextOut": contextOut,resetContexts : true,
-                        data: {
-                                  "google": {
-                                      "expect_user_response": true,
-                                      "rich_response": {
-                                        "items": [
-                                            {
-                                              "simpleResponse": {
-                                                "textToSpeech": msg,
-                                                "displayText": msg
-                                              }
-                                            }
-                                        ],
-                                        "suggestions":
-                                          [
-                                            {"title": "You can search our Products without login too."}
-                                          ]
-                                    }
-                                  }
-                              }
-                            }));
-    }
-  }else if(intentName == "logout user"){
-    // Return the results of the weather API to Dialogflow
-    console.log("logged-out user details -> ", contextsObject.login)
-    let msg = "Plz login to do logout from this app.";
-
-    let contextOut = [];
-    if(contextsObject.login && contextsObject.login.parameters && contextsObject.login.parameters.email_id != ""){
-      msg = "Logout successfully";
-      contextOut = [
-                      {
-                        "name": "login",
-                        "lifespan": 0,
-                        "parameters": {
-                          "email_id": ""
-                        }
-                      }
-                    ];
-    }
-    res.setHeader('Content-Type', 'application/json');
-    res.send(JSON.stringify({ 'speech': msg, 'displayText': msg, "contextOut": contextOut,resetContexts : true,
-                      data: {
-                                "google": {
-                                    "expect_user_response": true,
-                                    "rich_response": {
-                                      "items": [
-                                          {
-                                            "simpleResponse": {
-                                              "textToSpeech": msg,
-                                              "displayText": msg
-                                            }
-                                          }
-                                      ],
-                                      "suggestions":
-                                        [
-                                          {"title": "Want to Login Again?"},
-                                          {"title": "You can search our Products without login too."}
-                                        ]
-                                  }
-                                }
-                            }
-                          }));
-  }else if(intentName == "login user"){
-    let checkUser = {
-      email_id: req.body.result.parameters['email_id'],
-      password: req.body.result.parameters['password']
-    };
-    loginUser(checkUser).then((output) => {
-      // Return the results of the weather API to Dialogflow
-      console.log("logged-in user details -> ", output, typeof output)
-      let msg = "";
-      output = JSON.parse(output);
-      let contextOut = [];
-      if(!output.length){
-        msg = "Details are not correct. plz say like - login me by *******@gmail.com and *****"
-      } else if(output.length > 0 && output[0].role.customer){
-        contextOut = [
-                        {
-                          "name": "login",
-                          "lifespan": 50,
-                          "parameters": {
-                            "email_id": output[0].email_id
-                          }
-                        }
-                      ];
-        msg = "You are successfully logged in as Customer"
-      }else{
-        //TODO: update for vendor n cpg..
-        msg = "You are successfully logged in as Vendor"
-      }
-      res.setHeader('Content-Type', 'application/json');
-      res.send(JSON.stringify({ 'speech': msg, 'displayText': msg, "contextOut": contextOut,
-                        data: {
-                                  "google": {
-                                      "expect_user_response": true,
-                                      "rich_response": {
-                                        "items": [
-                                            {
-                                              "simpleResponse": {
-                                                "textToSpeech": msg,
-                                                "displayText": msg
-                                              }
-                                            }
-                                        ],
-                                        "suggestions":
-                                          [
-                                            {"title": output.length ? "Create Bucket" : "Not signup till now? Want to SignUp.."},
-                                            {"title": output.length ? "Update Profile" : "Try again to login, if registerd already"},
-                                            {"title":output.length ? "Search Products" : "You can search our Products without login too."}
-                                          ]
-                                    }
-                                  }
-                              }
-                            }));
-    }).catch((error) => {
-      // If there is an error let the user know
-      res.setHeader('Content-Type', 'application/json');
-      res.send(JSON.stringify({ 'speech': error, 'displayText': error }));
-    });
-  }else if(intentName == "create user"){
-    let new_user = {
-      email_id: req.body.result.parameters['email_id'],
-      password: req.body.result.parameters['password']
-    };
-    createUser(new_user).then((output) => {
-      // Return the results of the weather API to Dialogflow
-      let msg = "Registation unsuccessful";
-      output = JSON.parse(output);
-      let contextOut = [];
-      if(Object.keys(output).length){
-        msg = "Registation successful."
-      }
-      console.log("create user -> ", output, typeof output)
-      res.setHeader('Content-Type', 'application/json');
-      res.send(JSON.stringify({ 'speech': msg, 'displayText': msg }));
-    }).catch((error) => {
-      // If there is an error let the user know
-      res.setHeader('Content-Type', 'application/json');
-      res.send(JSON.stringify({ 'speech': error, 'displayText': error }));
-    });
-  }else if(list_type == "products"){
-        callProducts().then((output) => {
+                              })
+                );
+        break;
+    case "login user":
+        let checkUser = {
+          email_id: req.body.result.parameters['email_id'],
+          password: req.body.result.parameters['password']
+        };
+        loginUser(checkUser).then((output) => {
           // Return the results of the weather API to Dialogflow
-          let msg = "Products List :\n";
-          console.log("products list here", output, typeof output);
+          console.log("logged-in user details -> ", output, typeof output)
+          let msg = "";
           output = JSON.parse(output);
           let contextOut = [];
-          items_card = [];
-          output.forEach((product, index) => {
-            if(items_card.length < 10){
-            msg += "["+index + "]. " + product.name + "\n" +
-                    // "Description : " + product.description + "\n" +
-                    "Price: " + product.price;
-            if(product.deals.isDeal){
-              msg += "We also have a discount on this product."
-            }
-            msg += "\n\n";
-              items_card.push(
-                {
-                  "description": "Price: "+ product.price,
-                  "image": {
-                    "url": product.image_url,
-                    "accessibilityText": "product from category - " + product.category
-                  },
-                  "optionInfo": {
-                    "key": String(index),
-                    "synonyms": [
-                      "thing " + String(index),
-                      "object " + String(index)
-                    ]
-                  },
-                  "title": product.name
-                }
-            )
-            }
-          })
-          console.log("msg and google card1232->", msg, items_card);
-
+          if(!output.length){
+            msg = "Details are not correct. plz say like - login me by *******@gmail.com and *****"
+          } else if(output.length > 0 && output[0].role.customer){
+            contextOut = [
+                            {
+                              "name": "login",
+                              "lifespan": 50,
+                              "parameters": {
+                                "email_id": output[0].email_id
+                              }
+                            }
+                          ];
+            msg = "You are successfully logged in as Customer"
+          }else{
+            //TODO: update for vendor n cpg..
+            msg = "You are successfully logged in as Vendor"
+          }
           res.setHeader('Content-Type', 'application/json');
-          //done send data more than 640bytes(i think) else googlle assistent crash..
-          res.send(JSON.stringify({ 'speech': msg, 'displayText': msg,
-                                  "messages": [
-                                    {
-                                      "items": items_card,
-                                      "platform": "google",
-                                      "type": "carousel_card"
-                                    }
-                                  ]
-                               }));
-
-      }).catch((error) => {
+          res.send(JSON.stringify({ 'speech': msg, 'displayText': msg, "contextOut": contextOut,
+                            data: {
+                                      "google": {
+                                          "expect_user_response": true,
+                                          "rich_response": {
+                                            "items": [
+                                                {
+                                                  "simpleResponse": {
+                                                    "textToSpeech": msg,
+                                                    "displayText": msg
+                                                  }
+                                                }
+                                            ],
+                                            "suggestions":
+                                              [
+                                                {"title": output.length ? "Create Bucket" : "Not signup till now? Want to SignUp.."},
+                                                {"title": output.length ? "Update Profile" : "Try again to login, if registerd already"},
+                                                {"title":output.length ? "Search Products" : "You can search our Products without login too."}
+                                              ]
+                                        }
+                                      }
+                                  }
+                                }));
+        }).catch((error) => {
           // If there is an error let the user know
           res.setHeader('Content-Type', 'application/json');
           res.send(JSON.stringify({ 'speech': error, 'displayText': error }));
         });
-    }
+        break;
+    case "create user":
+        let new_user = {
+          email_id: req.body.result.parameters['email_id'],
+          password: req.body.result.parameters['password']
+        };
+        createUser(new_user).then((output) => {
+          // Return the results of the weather API to Dialogflow
+          let msg = "Registation unsuccessful";
+          output = JSON.parse(output);
+          let contextOut = [];
+          if(Object.keys(output).length){
+            msg = "Registation successful."
+          }
+          console.log("create user -> ", output, typeof output)
+          res.setHeader('Content-Type', 'application/json');
+          res.send(JSON.stringify({ 'speech': msg, 'displayText': msg }));
+        }).catch((error) => {
+          // If there is an error let the user know
+          res.setHeader('Content-Type', 'application/json');
+          res.send(JSON.stringify({ 'speech': error, 'displayText': error }));
+        });
+        break;
+    case "type-list":
+        if(list_type == "products"){
+          callProducts().then((output) => {
+            // Return the results of the weather API to Dialogflow
+            let msg = "Products List :\n";
+            console.log("products list here", output, typeof output);
+            output = JSON.parse(output);
+            let contextOut = [];
+            items_card = [];
+            output.forEach((product, index) => {
+              if(items_card.length < 10){
+              msg += "["+index + "]. " + product.name + "\n" +
+                      // "Description : " + product.description + "\n" +
+                      "Price: " + product.price;
+              if(product.deals.isDeal){
+                msg += "We also have a discount on this product."
+              }
+              msg += "\n\n";
+                items_card.push(
+                  {
+                    "description": "Price: "+ product.price,
+                    "image": {
+                      "url": product.image_url,
+                      "accessibilityText": "product from category - " + product.category
+                    },
+                    "optionInfo": {
+                      "key": String(index),
+                      "synonyms": [
+                        "thing " + String(index),
+                        "object " + String(index)
+                      ]
+                    },
+                    "title": product.name
+                  }
+              )
+              }
+            })
+            console.log("msg and google card1232->", msg, items_card);
+
+            res.setHeader('Content-Type', 'application/json');
+            //done send data more than 640bytes(i think) else googlle assistent crash..
+            res.send(JSON.stringify({ 'speech': msg, 'displayText': msg,
+                                    "messages": [
+                                      {
+                                        "items": items_card,
+                                        "platform": "google",
+                                        "type": "carousel_card"
+                                      }
+                                    ]
+                                 }));
+
+        }).catch((error) => {
+            // If there is an error let the user know
+            res.setHeader('Content-Type', 'application/json');
+            res.send(JSON.stringify({ 'speech': error, 'displayText': error }));
+          });
+        }
+        break
+    default:
+      //nonr intents find...
+      res.setHeader('Content-Type', 'application/json');
+      res.send(JSON.stringify({ 'speech': "Not able to find Switch Case for this Intent",
+                                'displayText': "Not able to find Switch Case for this Intent" }));
+  }
+  // if(intentName == "update user details"){
+  //
+  // }else if(intentName == "logout user"){
+  //
+  // }else if(intentName == "login user"){
+  //
+  // }else if(intentName == "create user"){
+  //
+  // }else if(list_type == "products"){
+  //
+  //   }
 })
 
 function updateUser(userObject) {
