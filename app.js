@@ -14,7 +14,7 @@ const pass = nconf.get('mongoPass');
 const host = nconf.get('mongoHost');
 const port = nconf.get('mongoPort');
 const dbName = nconf.get('mongoDatabase');
-const serverHost = "dd1fca99.ngrok.io";
+let serverHost = "dd1fca99.ngrok.io";
 if(process.env.PORT){//if webhook and app is runnig on heroku..
   serverHost = "maker-lab.herokuapp.com";
 }
@@ -207,7 +207,7 @@ console.log('API server listening on port: 3000 or ', process.env.PORT)
 
 app.post('/makerLab', function (req, res){
   // let city = req.body.result.parameters['geo-city']; // city is a required param
-  const intentName = req.body.result.metadata['intentName'] + "fds",
+  const intentName = req.body.result.metadata['intentName'],
         contexts = req.body.result.contexts,
         list_type = req.body.result.parameters['list'];
   let msg = "",
