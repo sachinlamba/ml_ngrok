@@ -64,24 +64,24 @@ app.get('/list_products', function (req, res) {
     });
 })
 
-// This responds a GET request for the /list_user page.
-// app.get('/list_users', function (req, res) {
-//    console.log("Got a GET request for the /list_users");
-//    mongodb.MongoClient.connect(uri, (err, mongoclient) => {
-//      if (err) {
-//        throw err;
-//      }
-//      var db = mongoclient.db(dbName);
-//      let users = [];
-//      db.collection('users').find().toArray(function(err, items) {
-//         users = [...items]
-//         console.log("users from /list_user",users)
-//         mongoclient.close();
-//         res.json(users);
-//         res.end();
-//      });
-//     });
-// })
+// This responds a POST request for the /view_product page.
+app.post('/view_product', function (req, res) {
+   console.log("Got a POST request for the /view_product for EAN->", req.body);
+   mongodb.MongoClient.connect(uri, (err, mongoclient) => {
+     if (err) {
+       throw err;
+     }
+     var db = mongoclient.db(dbName);
+     let EanObject = req.body;
+     db.collection('productsDataset').find(EanObject).toArray(function(err, items) {
+        let product = [...items].length ? [...items][0] : {};
+        console.log("product from /view_product",product)
+        mongoclient.close();
+        res.json(product);
+        res.end();
+     });
+    });
+})
 
 app.post('/user_login', function (req, res) {
    console.log("Got a GET request for the /user_login", req.body);
@@ -140,29 +140,6 @@ app.post('/user_update', function (req, res) {
         })
      });
 
-     // let create_user = {
-     //     "first_name": "",
-     //     "last_name": "",
-     //     "password": req.body.password,
-     //     "email_id": req.body.email_id,
-     //     "user_name": "",
-     //     "role": {
-     //         "customer": true
-     //     },
-     //     "cart": [],
-     //     "buy_history_product": [],
-     //     "buckets_created": {},
-     //     "address": {},
-     //     "products_id_search_history": []
-     // };
-     //
-     // db.collection('users').insert(create_user, {w: 1}, function(err, user){
-     //   console.log("user added - ", create_user)
-     //   console.log("user added details", user)
-     //   mongoclient.close();
-     //   res.json(create_user);
-     //   res.end();
-     // })
     });
 })
 
@@ -208,8 +185,9 @@ console.log('API server listening on port: 3000 or ', process.env.PORT)
 app.post('/makerLab', function (req, res){
   // let city = req.body.result.parameters['geo-city']; // city is a required param
   const intentName = req.body.result.metadata['intentName'],
-        contexts = req.body.result.contexts,
-        list_type = req.body.result.parameters['list'];
+        contexts = req.body.result.contexts ? req.body.result.contexts : [],
+        list_type = req.body.result.parameters['list'],
+        nthProduct = req.body.result.parameters['nthProduct'];
   let msg = "",
       contextsObject = {};
   contexts.map(context => {
@@ -218,6 +196,56 @@ app.post('/makerLab', function (req, res){
   console.log("Webhook POST /makerLab ----->>> \n\t\tIntent Called -> [", intentName, "]. \n\t\tcontextsObject : " , contextsObject);
   console.log("Request body : ", req.body);
   switch(intentName){
+    case "product details":
+        console.log("In Intent - product details", contextsObject.products_ean_list);
+        let msg = ""
+        if(contextsObject.products_ean_list && contextsObject.products_ean_list.parameters && contextsObject.products_ean_list.parameters.EANList != ""){
+          // msg = "Logout successfully";
+          let EANNumber = contextsObject.products_ean_list.parameters.EANList[nthProduct-1]
+          viewProduct(EANNumber).then((output) => {
+            // Return the results of the weather API to Dialogflow
+            console.log("product list by help of EANNumber -> ", output, typeof output)
+            output = JSON.parse(output);
+            let msg = "Product Details: \n Name: " + output.Title + "\n" +
+                "Price : " + output.ListPrice + "\n" +
+                "Features : " + output.Feature + "\n" +
+                "Item Dimensions: " + output.ItemDimensions + "\n" +
+                "ReleaseDate: " + output.ReleaseDate + ".\n";
+            res.setHeader('Content-Type', 'application/json');
+            res.send(JSON.stringify({ 'speech': msg, 'displayText': msg,
+                              data: {
+                                        "google": {
+                                            "expect_user_response": true,
+                                            "rich_response": {
+                                              "items": [
+                                                  {
+                                                    "simpleResponse": {
+                                                      "textToSpeech": msg,
+                                                      "displayText": msg
+                                                    }
+                                                  }
+                                              ],
+                                              "suggestions":
+                                                [
+                                                  {"title": "Go back to list?"},
+                                                  {"title": "Add to cart."},
+                                                  {"title": "logout"}
+                                                ]
+                                          }
+                                        }
+                                    }
+                                  }));
+          }).catch((error) => {
+            // If there is an error let the user know
+            res.setHeader('Content-Type', 'application/json');
+            res.send(JSON.stringify({ 'speech': error, 'displayText': error }));
+          });
+        }else{
+          res.setHeader('Content-Type', 'application/json');
+          msg = "Not able to find specified Product from last searched list of products.Say again like - 'open product second'.";
+          res.send(JSON.stringify({ 'speech': msg, 'displayText': msg }));
+        }
+        break;
     case "update user details":
         console.log("In Intent - update user details -> ", contextsObject.login)
         msg = "";
@@ -424,10 +452,12 @@ app.post('/makerLab', function (req, res){
             let msg = "Products List :\n";
             console.log("products list here", output, typeof output);
             output = JSON.parse(output);
-            let contextOut = [];
+            let contextOut = [],
+                products_ean_list = [];
             items_card = [];
             output.forEach((product, index) => {
-              if(items_card.length < 10){
+              // if(items_card.length < 10){
+              products_ean_list.push(product.EAN);
               msg += "["+index + "]. " + product.Title + "\n" +
                       // "Description : " + product.description + "\n" +
                       "Price: " + product.ListPrice;
@@ -452,13 +482,20 @@ app.post('/makerLab', function (req, res){
                     "title": product.Title
                   }
               )
+              // }
+            })
+            console.log("msg and google card1232->", msg, items_card, contexts);
+            contextOut = contexts;
+            contextOut.push({
+              "name": "products_ean_list",
+              "lifespan": 10,
+              "parameters": {
+                "EANList": products_ean_list
               }
             })
-            console.log("msg and google card1232->", msg, items_card);
-
             res.setHeader('Content-Type', 'application/json');
             //done send data more than 640bytes(i think) else googlle assistent crash..
-            res.send(JSON.stringify({ 'speech': msg, 'displayText': msg,
+            res.send(JSON.stringify({ 'speech': msg, 'displayText': msg, 'contextOut': contextOut,
                                     "messages": [
                                       {
                                         "items": items_card,
@@ -531,6 +568,29 @@ function loginUser(userObject) {
                   resolve(JSON.stringify(body));
               }else{
                 console.error("3. user_login",error);
+                reject(error)
+              }
+            }
+          );
+  });
+}
+
+function viewProduct (EANNumber) {
+  return new Promise((resolve, reject) => {
+    let path = '/view_product';
+    console.log("view product", typeof request, typeof http.request, "https://" + serverHost + path);
+    console.log("1");
+    request({
+              url: "https://" + serverHost + path,
+              method: "POST",
+              json: true,   // <--Very important!!!
+              body: {"EAN": EANNumber}
+            }, function (error, response, body){
+              if (!error && response.statusCode == 200) {
+                  console.log("success post request for view product: ",body)
+                  resolve(JSON.stringify(body));
+              }else{
+                console.error("dfg",error);
                 reject(error)
               }
             }
