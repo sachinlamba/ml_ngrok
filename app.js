@@ -14,7 +14,7 @@ const pass = nconf.get('mongoPass');
 const host = nconf.get('mongoHost');
 const port = nconf.get('mongoPort');
 const dbName = nconf.get('mongoDatabase');
-let serverHost = "dd1fca99.ngrok.io";
+let serverHost = "5f1691cc.ngrok.io";
 if(process.env.PORT){//if webhook and app is runnig on heroku..
   serverHost = "maker-lab.herokuapp.com";
 }
@@ -54,7 +54,7 @@ app.get('/list_products', function (req, res) {
      }
      var db = mongoclient.db(dbName);
      let products = [];
-     db.collection('products').find().toArray(function(err, items) {
+     db.collection('productsDataset').find().limit(10).toArray(function(err, items) {
         products = [...items]
         console.log("products from /productsList",products)
         mongoclient.close();
@@ -65,23 +65,23 @@ app.get('/list_products', function (req, res) {
 })
 
 // This responds a GET request for the /list_user page.
-app.get('/list_users', function (req, res) {
-   console.log("Got a GET request for the /list_users");
-   mongodb.MongoClient.connect(uri, (err, mongoclient) => {
-     if (err) {
-       throw err;
-     }
-     var db = mongoclient.db(dbName);
-     let users = [];
-     db.collection('users').find().toArray(function(err, items) {
-        users = [...items]
-        console.log("users from /list_user",users)
-        mongoclient.close();
-        res.json(users);
-        res.end();
-     });
-    });
-})
+// app.get('/list_users', function (req, res) {
+//    console.log("Got a GET request for the /list_users");
+//    mongodb.MongoClient.connect(uri, (err, mongoclient) => {
+//      if (err) {
+//        throw err;
+//      }
+//      var db = mongoclient.db(dbName);
+//      let users = [];
+//      db.collection('users').find().toArray(function(err, items) {
+//         users = [...items]
+//         console.log("users from /list_user",users)
+//         mongoclient.close();
+//         res.json(users);
+//         res.end();
+//      });
+//     });
+// })
 
 app.post('/user_login', function (req, res) {
    console.log("Got a GET request for the /user_login", req.body);
@@ -428,20 +428,20 @@ app.post('/makerLab', function (req, res){
             items_card = [];
             output.forEach((product, index) => {
               if(items_card.length < 10){
-              msg += "["+index + "]. " + product.name + "\n" +
+              msg += "["+index + "]. " + product.Title + "\n" +
                       // "Description : " + product.description + "\n" +
-                      "Price: " + product.price;
-              if(product.deals.isDeal){
-                msg += "We also have a discount on this product."
-              }
+                      "Price: " + product.ListPrice;
+              // if(product.deals.isDeal){
+              //   msg += "We also have a discount on this product."
+              // }
               msg += "\n\n";
                 items_card.push(
                   {
-                    "description": "Price: "+ product.price,
-                    "image": {
-                      "url": product.image_url,
-                      "accessibilityText": "product from category - " + product.category
-                    },
+                    "description": "Price: "+ product.ListPrice,
+                    // "image": {
+                    //   "url": product.image_url,
+                    //   "accessibilityText": "product from category - " + product.category
+                    // },
                     "optionInfo": {
                       "key": String(index),
                       "synonyms": [
@@ -449,7 +449,7 @@ app.post('/makerLab', function (req, res){
                         "object " + String(index)
                       ]
                     },
-                    "title": product.name
+                    "title": product.Title
                   }
               )
               }
