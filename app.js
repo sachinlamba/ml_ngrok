@@ -14,7 +14,7 @@ const pass = nconf.get('mongoPass');
 const host = nconf.get('mongoHost');
 const port = nconf.get('mongoPort');
 const dbName = nconf.get('mongoDatabase');
-let serverHost = "5f1691cc.ngrok.io";
+let serverHost = "07ec33db.ngrok.io";
 if(process.env.PORT){//if webhook and app is runnig on heroku..
   serverHost = "maker-lab.herokuapp.com";
 }
@@ -143,6 +143,34 @@ app.post('/user_update', function (req, res) {
     });
 })
 
+app.post('/add_product', function (req, res) {
+   console.log("Got a POST request for the /add_product",JSON.stringify(req.body));
+   mongodb.MongoClient.connect(uri, (err, mongoclient) => {
+     if (err) {
+       throw err;
+     }
+     console.log("6")
+     var db = mongoclient.db(dbName);
+     console.log("user_update",JSON.stringify(req.body));
+     let update_user = req.body;
+     let search_user = { email_id: update_user.email_id};
+     console.log("search_user", search_user, "cart - ", update_user.productByEAN);
+     // res.json(update_user);
+     // res.end();
+     db.collection('users').findAndModify(
+       search_user,
+       [],
+       {$push: {cart: update_user.productByEAN }},
+       {},
+       function(err, update_user) {
+        console.log("user from /add_product",update_user)
+          mongoclient.close();
+          res.json(update_user);
+          res.end();
+     })
+    });
+})
+
 app.post('/create_user', function (req, res) {
    console.log("Got a POST request for the /create_user",JSON.stringify(req.body));
    mongodb.MongoClient.connect(uri, (err, mongoclient) => {
@@ -187,7 +215,8 @@ app.post('/makerLab', function (req, res){
   const intentName = req.body.result.metadata['intentName'],
         contexts = req.body.result.contexts ? req.body.result.contexts : [],
         list_type = req.body.result.parameters['list'],
-        nthProduct = req.body.result.parameters['nthProduct'];
+        nthProduct = req.body.result.parameters['nthProduct'],
+        noOfProducts = req.body.result.parameters['noOfProducts'] ? req.body.result.parameters['noOfProducts'] : "1";
   let msg = "",
       contextsObject = {};
   contexts.map(context => {
@@ -196,21 +225,52 @@ app.post('/makerLab', function (req, res){
   console.log("Webhook POST /makerLab ----->>> \n\t\tIntent Called -> [", intentName, "]. \n\t\tcontextsObject : " , contextsObject);
   console.log("Request body : ", req.body);
   switch(intentName){
-    case "product details":
-        console.log("In Intent - product details", contextsObject.products_ean_list);
-        let msg = ""
-        if(contextsObject.products_ean_list && contextsObject.products_ean_list.parameters && contextsObject.products_ean_list.parameters.EANList != ""){
-          // msg = "Logout successfully";
-          let EANNumber = contextsObject.products_ean_list.parameters.EANList[nthProduct-1]
-          viewProduct(EANNumber).then((output) => {
+    case "product2Cart":
+        console.log("In Intent - product2Cart", contextsObject.login , contextsObject.products_ean_list);
+        if(contextsObject.login && contextsObject.login.parameters && contextsObject.login.parameters.email_id != ""){
+          let EANNumber = "";
+          if(contextsObject["active_product"]){
+            //pick this if product details are shown
+            EANNumber = contextsObject["active_product"].parameters.EANNumber;
+          }else if(!isNaN(parseFloat(nthProduct)) && isFinite(nthProduct)){
+            //;pick this if product number is told by user to add product to cart
+            EANNumber = contextsObject.products_ean_list.parameters.EANList[nthProduct-1]
+          }else{
+            let msg = "Plz view details of product or tell valid index of product to add item to your cart.";
+            res.setHeader('Content-Type', 'application/json');
+            res.send(JSON.stringify({ 'speech': msg, 'displayText': msg,
+                              data: {
+                                        "google": {
+                                            "expect_user_response": true,
+                                            "rich_response": {
+                                              "items": [
+                                                  {
+                                                    "simpleResponse": {
+                                                      "textToSpeech": msg,
+                                                      "displayText": msg
+                                                    }
+                                                  }
+                                              ],
+                                              "suggestions":
+                                                [
+                                                  {"title": "You can search our Products without login too."}
+                                                ]
+                                          }
+                                        }
+                                    }
+                                  }));
+          }
+          let userObject = {
+            email_id : contextsObject.login.parameters.email_id,
+            productByEAN : {
+              [EANNumber] : noOfProducts
+            }
+          };
+          addProduct(userObject).then((output) => {
             // Return the results of the weather API to Dialogflow
             console.log("product list by help of EANNumber -> ", output, typeof output)
             output = JSON.parse(output);
-            let msg = "Product Details: \n Name: " + output.Title + "\n" +
-                "Price : " + output.ListPrice + "\n" +
-                "Features : " + output.Feature + "\n" +
-                "Item Dimensions: " + output.ItemDimensions + "\n" +
-                "ReleaseDate: " + output.ReleaseDate + ".\n";
+            let msg = "Product (EAN number) added successfully. ";
             res.setHeader('Content-Type', 'application/json');
             res.send(JSON.stringify({ 'speech': msg, 'displayText': msg,
                               data: {
@@ -240,6 +300,93 @@ app.post('/makerLab', function (req, res){
             res.setHeader('Content-Type', 'application/json');
             res.send(JSON.stringify({ 'speech': error, 'displayText': error }));
           });
+
+        }else{
+          let msg = "Plz login to add products to your cart.";
+          res.setHeader('Content-Type', 'application/json');
+          res.send(JSON.stringify({ 'speech': msg, 'displayText': msg,
+                            data: {
+                                      "google": {
+                                          "expect_user_response": true,
+                                          "rich_response": {
+                                            "items": [
+                                                {
+                                                  "simpleResponse": {
+                                                    "textToSpeech": msg,
+                                                    "displayText": msg
+                                                  }
+                                                }
+                                            ],
+                                            "suggestions":
+                                              [
+                                                {"title": "You can search our Products without login too."}
+                                              ]
+                                        }
+                                      }
+                                  }
+                                }));
+        }
+
+        break;
+    case "product details":
+        console.log("In Intent - product details", contextsObject.products_ean_list);
+        let msg = ""
+        if(contextsObject.products_ean_list && contextsObject.products_ean_list.parameters && contextsObject.products_ean_list.parameters.EANList != ""){
+          // msg = "Logout successfully";
+          let EANNumber = contextsObject.products_ean_list.parameters.EANList[nthProduct-1]
+          if(!isNaN(parseFloat(EANNumber)) && isFinite(EANNumber)){
+            viewProduct(EANNumber).then((output) => {
+              // Return the results of the weather API to Dialogflow
+              console.log("product list by help of EANNumber -> ", output, typeof output)
+              output = JSON.parse(output);
+              let msg = "Product Details: \n Name: " + output.Title + "\n" +
+                  "Price : " + output.ListPrice + "\n" +
+                  "Features : " + output.Feature + "\n" +
+                  "Item Dimensions: " + output.ItemDimensions + "\n" +
+                  "ReleaseDate: " + output.ReleaseDate + ".\n";
+              res.setHeader('Content-Type', 'application/json');
+              let contextOut = contexts ? contexts : [];
+              contextOut.push({
+                                "name": "active_product",
+                                "lifespan": 10,
+                                "parameters": {
+                                  "EANNumber": EANNumber
+                                }
+                              });
+              res.send(JSON.stringify({ 'speech': msg, 'displayText': msg,
+                                contextOut: contextOut,
+                                data: {
+                                          "google": {
+                                              "expect_user_response": true,
+                                              "rich_response": {
+                                                "items": [
+                                                    {
+                                                      "simpleResponse": {
+                                                        "textToSpeech": msg,
+                                                        "displayText": msg
+                                                      }
+                                                    }
+                                                ],
+                                                "suggestions":
+                                                  [
+                                                    {"title": "Go back to list?"},
+                                                    {"title": "Add to cart."},
+                                                    {"title": "logout"}
+                                                  ]
+                                            }
+                                          }
+                                      }
+                                    }));
+            }).catch((error) => {
+              // If there is an error let the user know
+              res.setHeader('Content-Type', 'application/json');
+              res.send(JSON.stringify({ 'speech': error, 'displayText': error }));
+            });
+          }else{
+            res.setHeader('Content-Type', 'application/json');
+            msg = "Plz select a valid product number from list only."
+            res.send(JSON.stringify({ 'speech': msg, 'displayText': msg }));
+          }
         }else{
           res.setHeader('Content-Type', 'application/json');
           msg = "Not able to find specified Product from last searched list of products.Say again like - 'open product second'.";
@@ -375,19 +522,18 @@ app.post('/makerLab', function (req, res){
           console.log("logged-in user details -> ", output, typeof output)
           let msg = "";
           output = JSON.parse(output);
-          let contextOut = [];
+          let contextOut = contexts ? contexts : [];
           if(!output.length){
             msg = "Details are not correct. plz say like - login me by *******@gmail.com and *****"
           } else if(output.length > 0 && output[0].role.customer){
-            contextOut = [
-                            {
+            contextOut = contexts;
+            contextOut.push({
                               "name": "login",
                               "lifespan": 50,
                               "parameters": {
                                 "email_id": output[0].email_id
                               }
-                            }
-                          ];
+                            });
             msg = "You are successfully logged in as Customer"
           }else{
             //TODO: update for vendor n cpg..
@@ -455,7 +601,8 @@ app.post('/makerLab', function (req, res){
             let contextOut = [],
                 products_ean_list = [];
             items_card = [];
-            output.forEach((product, index) => {
+            output.forEach((product, ind) => {
+              let index = ind + 1;
               // if(items_card.length < 10){
               products_ean_list.push(product.EAN);
               msg += "["+index + "]. " + product.Title + "\n" +
@@ -530,6 +677,27 @@ app.post('/makerLab', function (req, res){
   //
   //   }
 })
+function addProduct(productObject) {
+  return new Promise((resolve, reject) => {
+    let path = '/add_product';
+    console.log("2. add_product", typeof request, typeof http.request, "https://" + serverHost + path);
+    request({
+              url: "https://" + serverHost + path,
+              method: "POST",
+              json: true,   // <--Very important!!!
+              body: productObject
+            }, function (error, response, body){
+              if (!error && response.statusCode == 200) {
+                  console.log("success post request for add product to user cart: ",body)
+                  resolve(JSON.stringify(body));
+              }else{
+                console.error("3. add_product",error);
+                reject(error)
+              }
+            }
+          );
+  });
+}
 
 function updateUser(userObject) {
   return new Promise((resolve, reject) => {
