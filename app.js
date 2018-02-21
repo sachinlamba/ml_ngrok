@@ -217,8 +217,7 @@ app.post('/makerLab', function (req, res){
         list_type = req.body.result.parameters['list'],
         nthProduct = req.body.result.parameters['nthProduct'],
         noOfProducts = req.body.result.parameters['noOfProducts'] ? req.body.result.parameters['noOfProducts'] : "1";
-  let msg = "",
-      contextsObject = {};
+  let msg = "", contextsObject = {};
   contexts.map(context => {
     return contextsObject[context.name] = context;
   })
@@ -232,11 +231,11 @@ app.post('/makerLab', function (req, res){
           if(contextsObject["active_product"]){
             //pick this if product details are shown
             EANNumber = contextsObject["active_product"].parameters.EANNumber;
-          }else if(!isNaN(parseFloat(nthProduct)) && isFinite(nthProduct)){
+          }else if(contextsObject.products_ean_list && !isNaN(parseFloat(nthProduct)) && isFinite(nthProduct)){
             //;pick this if product number is told by user to add product to cart
             EANNumber = contextsObject.products_ean_list.parameters.EANList[nthProduct-1]
           }else{
-            let msg = "Plz view details of product or tell valid index of product to add item to your cart.";
+            let msg = "Plz view details of product or tell valid index of product(searched list) to add item to your cart.";
             res.setHeader('Content-Type', 'application/json');
             res.send(JSON.stringify({ 'speech': msg, 'displayText': msg,
                               data: {
@@ -260,47 +259,52 @@ app.post('/makerLab', function (req, res){
                                     }
                                   }));
           }
-          let userObject = {
-            email_id : contextsObject.login.parameters.email_id,
-            productByEAN : {
-              [EANNumber] : noOfProducts
-            }
-          };
-          addProduct(userObject).then((output) => {
-            // Return the results of the weather API to Dialogflow
-            console.log("product list by help of EANNumber -> ", output, typeof output)
-            output = JSON.parse(output);
-            let msg = "Product (EAN number) added successfully. ";
-            res.setHeader('Content-Type', 'application/json');
-            res.send(JSON.stringify({ 'speech': msg, 'displayText': msg,
-                              data: {
-                                        "google": {
-                                            "expect_user_response": true,
-                                            "rich_response": {
-                                              "items": [
-                                                  {
-                                                    "simpleResponse": {
-                                                      "textToSpeech": msg,
-                                                      "displayText": msg
+          if(!isNaN(parseFloat(EANNumber)) && isFinite(EANNumber)){
+            let userObject = {
+              email_id : contextsObject.login.parameters.email_id,
+              productByEAN : {
+                [EANNumber] : noOfProducts
+              }
+            };
+            addProduct(userObject).then((output) => {
+              // Return the results of the weather API to Dialogflow
+              console.log("product list by help of EANNumber -> ", output, typeof output)
+              output = JSON.parse(output);
+              let msg = "Product (EAN number) added successfully. ";
+              res.setHeader('Content-Type', 'application/json');
+              res.send(JSON.stringify({ 'speech': msg, 'displayText': msg,
+                                data: {
+                                          "google": {
+                                              "expect_user_response": true,
+                                              "rich_response": {
+                                                "items": [
+                                                    {
+                                                      "simpleResponse": {
+                                                        "textToSpeech": msg,
+                                                        "displayText": msg
+                                                      }
                                                     }
-                                                  }
-                                              ],
-                                              "suggestions":
-                                                [
-                                                  {"title": "Go back to list?"},
-                                                  {"title": "Add to cart."},
-                                                  {"title": "logout"}
-                                                ]
+                                                ],
+                                                "suggestions":
+                                                  [
+                                                    {"title": "Go back to list?"},
+                                                    {"title": "Add to cart."},
+                                                    {"title": "logout"}
+                                                  ]
+                                            }
                                           }
-                                        }
-                                    }
-                                  }));
-          }).catch((error) => {
-            // If there is an error let the user know
+                                      }
+                                    }));
+            }).catch((error) => {
+              // If there is an error let the user know
+              res.setHeader('Content-Type', 'application/json');
+              res.send(JSON.stringify({ 'speech': error, 'displayText': error }));
+            });
+          }else{
+            let msg = "Not able to find a valid productId. Plz try again from a list of products."
             res.setHeader('Content-Type', 'application/json');
             res.send(JSON.stringify({ 'speech': error, 'displayText': error }));
-          });
-
+          }
         }else{
           let msg = "Plz login to add products to your cart.";
           res.setHeader('Content-Type', 'application/json');
