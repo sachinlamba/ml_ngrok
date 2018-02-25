@@ -14,7 +14,7 @@ const pass = nconf.get('mongoPass');
 const host = nconf.get('mongoHost');
 const port = nconf.get('mongoPort');
 const dbName = nconf.get('mongoDatabase');
-let serverHost = "07ec33db.ngrok.io";
+let serverHost = "7f75b643.ngrok.io";
 if(process.env.PORT){//if webhook and app is runnig on heroku..
   serverHost = "maker-lab.herokuapp.com";
 }
@@ -46,6 +46,28 @@ app.get('/', function (req, res) {
    res.end('Hello from Home Page');
 });
 // This responds a GET request for the /list_products page.
+app.get('/chatFirstSpeak', function (req, res) {
+   console.log("Got a GET request for the /chatFirstSpeak");
+   request({
+             url: "https://console.dialogflow.com/api-client/demo/embedded/b391e62e-588b-48a0-b250-25690d5b8c41/demoQuery?q=hi&sessionId=f8ef1b94-0e7d-adeb-3f20-5681e042c1d1",
+             method: "GET",
+             Options: {
+               "Access-Control-Allow-Origin": "*",
+               "Access-Control-Allow-Headers": "Content-Type"
+             }
+           }, function (error, response, body){
+             if (!error && response.statusCode == 200) {
+                 console.log("success get chatFirstSpeak: ",body)
+                 res.json(body);
+                 res.end();
+             }else{
+               console.error("chatFirstSpeak",error);
+             }
+           }
+         );
+        // res.json(products);
+        // res.end();
+})
 app.get('/list_products', function (req, res) {
    console.log("Got a GET request for the /list_products");
    mongodb.MongoClient.connect(uri, (err, mongoclient) => {
